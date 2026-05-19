@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yourpass/configs/app_text_styles.dart';
 import 'package:yourpass/screens/vault/vault.dart';
+import 'package:yourpass/services/vault/vault_service.dart';
 import 'package:yourpass/widgets/app_logo.dart';
 import 'package:yourpass/widgets/primary_button.dart';
 import 'package:yourpass/widgets/app_text_field.dart';
@@ -14,12 +15,73 @@ class UnlockVault extends StatefulWidget {
 
 class _UnlockState extends State<UnlockVault> {
   final _passwordController = TextEditingController();
+  final _vaultService = VaultService();
+
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleUnlock() async {
+    final theme = Theme.of(context);
+    final String password = _passwordController.text.trim();
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Please enter your master password',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: theme.colorScheme.primary,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _vaultService.unlockVault(password: password);
+
+      _passwordController.clear();
+
+      if (!mounted) return;
+
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const Vault()));
+    } on VaultException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to unlock vault: $e',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -70,15 +132,13 @@ class _UnlockState extends State<UnlockVault> {
                       () => _isPasswordVisible = !_isPasswordVisible,
                     ),
                   ),
+                  onSubmitted: _isLoading ? null : (_) => _handleUnlock(),
                 ),
                 const SizedBox(height: 32),
                 PrimaryButton(
                   text: 'Unlock',
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const Vault()),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _handleUnlock,
+                  isLoading: _isLoading,
                 ),
               ],
             ),

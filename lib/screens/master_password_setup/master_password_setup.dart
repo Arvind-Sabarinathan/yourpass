@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yourpass/configs/app_text_styles.dart';
 import 'package:yourpass/screens/unlock_vault/unlock_vault.dart';
+import 'package:yourpass/services/vault/vault_service.dart';
 import 'package:yourpass/utils/validation_utils.dart';
 import 'package:yourpass/widgets/app_logo.dart';
 import 'package:yourpass/widgets/primary_button.dart';
@@ -17,10 +18,12 @@ class _MasterPasswordSetupState extends State<MasterPasswordSetup> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _hintController = TextEditingController();
+  final _vaultService = VaultService();
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _hasAgreed = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,16 +33,18 @@ class _MasterPasswordSetupState extends State<MasterPasswordSetup> {
     super.dispose();
   }
 
-  void _createVault() {
+  Future<void> _handleCreateVault() async {
     final theme = Theme.of(context);
 
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
+    final hint = _hintController.text.trim();
 
     final error = ValidationUtils.validateMasterPassword(
       password: password,
       confirmPassword: confirmPassword,
     );
+
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -49,10 +54,38 @@ class _MasterPasswordSetupState extends State<MasterPasswordSetup> {
       );
       return;
     }
-    
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const UnlockVault()));
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _vaultService.createVault(
+        password: password,
+        hint: hint.isNotEmpty ? hint : null,
+      );
+
+      _passwordController.clear();
+      _confirmPasswordController.clear();
+
+      if (!mounted) return;
+
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const UnlockVault()));
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to create vault: $e',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -178,7 +211,8 @@ class _MasterPasswordSetupState extends State<MasterPasswordSetup> {
               const SizedBox(height: 60),
               PrimaryButton(
                 text: 'Create Vault',
-                onPressed: _hasAgreed ? _createVault : null,
+                onPressed: _hasAgreed ? _handleCreateVault : null,
+                isLoading: _isLoading,
               ),
             ],
           ),
