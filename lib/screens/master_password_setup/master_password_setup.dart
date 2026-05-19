@@ -70,7 +70,10 @@ class _MasterPasswordSetupState extends State<MasterPasswordSetup> {
 
       Navigator.of(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const UnlockVault()));
+      ).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const UnlockVault()),
+        (_) => false,
+      );
     } catch (e) {
       if (!mounted) return;
 
