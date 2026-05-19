@@ -96,5 +96,10 @@ class VaultService {
     _vaultSessionService.createSession(vaultKey: keyBytes);
   }
 
+  Future<String?> getHint() async {
+    final VaultMetadata? metadata = await _vaultStorageService.load();
+    return metadata?.hint;
+  }
+
   bool get isVaultUnlocked => _vaultSessionService.isUnlocked;
 }

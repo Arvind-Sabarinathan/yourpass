@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:yourpass/configs/app_text_styles.dart';
 import 'package:yourpass/screens/vault/vault.dart';
@@ -17,12 +19,28 @@ class _UnlockState extends State<UnlockVault> {
   final _passwordController = TextEditingController();
   final _vaultService = VaultService();
 
+  final _hintController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadHint();
+  }
+
+  Future<void> _loadHint() async {
+    final String? hint = await _vaultService.getHint();
+    if (hint != null && mounted) {
+      _hintController.text = hint;
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
     _passwordController.dispose();
+    _hintController.dispose();
     super.dispose();
   }
 
@@ -84,6 +102,89 @@ class _UnlockState extends State<UnlockVault> {
     }
   }
 
+  void _showHintDialog(BuildContext context) {
+    final theme = Theme.of(context);
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Password hint',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 200),
+      transitionBuilder: (ctx, anim, secondaryAnim, child) => BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: 1.5 * anim.value,
+          sigmaY: 1.5 * anim.value,
+        ),
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+      pageBuilder: (ctx, anim1, anim2) {
+        final isDark = theme.brightness == Brightness.dark;
+
+        return Dialog(
+          backgroundColor: isDark ? theme.colorScheme.surface : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline_rounded,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Password Hint',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _hintController.text,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -115,6 +216,36 @@ class _UnlockState extends State<UnlockVault> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
+                if (_hintController.text.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () => _showHintDialog(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Show Password Hint',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 16,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.7,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (_hintController.text.isNotEmpty) const SizedBox(height: 8),
                 AppTextField(
                   controller: _passwordController,
                   label: "Master Password",
