@@ -14,16 +14,15 @@
 
 ---
 
-YourPass is a **privacy first** and **offline password manager** built for privacy. All your credentials are stored locally on your device — no cloud sync, no telemetry, no internet required.
-
-> [!NOTE]
-> **The UI is fully built, and core security features are being actively implemented.**
+YourPass is a **privacy first** and **offline password manager** built for privacy. All your credentials are encrypted with AES-256-GCM using a key derived from your master password via Argon2id, and stored locally on your device — no cloud sync, no telemetry, no internet required.
 
 ---
 
 ## Features
 
-- **Master password derived key encryption** — Your vault is encrypted using a key derived from your master password. Without it, your data stays locked.
+- **Argon2id key derivation** — Your vault key is derived from your master password using Argon2id, making brute-force attacks infeasible.
+- **AES-256-GCM encryption** — All credentials are encrypted with AES-256-GCM before touching disk.
+- **Vault creation & unlock flow** — Set up a master password with an optional hint, then unlock with each session.
 - **Fully offline** — Your credentials never leave your device. No accounts, no servers, no subscription.
 - **Search & categorize** — Filter by category (Web, App, Other) or search by title and username.
 - **One-tap copy** — Tap to copy usernames and passwords. A quick confirmation lets you know it worked.
