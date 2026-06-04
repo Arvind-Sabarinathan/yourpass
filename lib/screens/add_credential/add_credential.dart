@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/credential.dart';
+import '../../services/storage/credential_storage_service.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/primary_button.dart';
 
@@ -11,12 +12,14 @@ class AddCredentialScreen extends StatefulWidget {
 }
 
 class _AddCredentialScreenState extends State<AddCredentialScreen> {
+  final _credentialStorage = CredentialStorageService();
   final _titleController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _notesController = TextEditingController();
   CredentialCategory _selectedCategory = CredentialCategory.web;
   bool _obscurePassword = true;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -33,7 +36,7 @@ class _AddCredentialScreenState extends State<AddCredentialScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -63,63 +66,72 @@ class _AddCredentialScreenState extends State<AddCredentialScreen> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: PrimaryButton(
+                text: "Save Credential",
+                icon: Icons.check_circle_rounded,
+                onPressed: _isSaving ? null : _handleSave,
+                isLoading: _isSaving,
+              ),
+            ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionLabel("Category", theme),
-                    const SizedBox(height: 12),
-                    _buildCategorySelector(theme),
-                    const SizedBox(height: 32),
-                    _buildSectionLabel("Credential Details", theme),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _titleController,
-                      label: "Service Name",
-                      hint: "e.g. Google, Amazon",
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _usernameController,
-                      label: "Username / Email",
-                      hint: "yourname@email.com",
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _passwordController,
-                      label: "Password",
-                      hint: "••••••••",
-                      isObscure: _obscurePassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.4,
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionLabel("Category", theme),
+                      const SizedBox(height: 12),
+                      _buildCategorySelector(theme),
+                      const SizedBox(height: 32),
+                      _buildSectionLabel("Credential Details", theme),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        controller: _titleController,
+                        label: "Service Name",
+                        hint: "e.g. Google, Amazon",
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        controller: _usernameController,
+                        label: "Username / Email",
+                        hint: "yourname@email.com",
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        controller: _passwordController,
+                        label: "Password",
+                        hint: "••••••••",
+                        isObscure: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.4,
+                            ),
+                            size: 20,
                           ),
-                          size: 20,
-                        ),
-                        onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    _buildSectionLabel("Optional", theme),
-                    const SizedBox(height: 12),
-                    AppTextField(
-                      controller: _notesController,
-                      label: "Notes",
-                      hint: "Add any extra details here...",
-                    ),
+                      const SizedBox(height: 32),
+                      _buildSectionLabel("Optional", theme),
+                      const SizedBox(height: 12),
+                      AppTextField(
+                        controller: _notesController,
+                        label: "Notes",
+                        hint: "Add any extra details here...",
+                      ),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-            _buildSaveButton(theme),
           ],
         ),
       ),
@@ -181,17 +193,58 @@ class _AddCredentialScreenState extends State<AddCredentialScreen> {
     );
   }
 
-  Widget _buildSaveButton(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: PrimaryButton(
-        text: "Save Credential",
-        icon: Icons.check_circle_rounded,
-        onPressed: () {
-          // Implement save logic
-          Navigator.pop(context);
-        },
-      ),
+  Future<void> _handleSave() async {
+    final title = _titleController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (title.isEmpty || username.isEmpty || password.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            title.isEmpty
+                ? 'Service name is required'
+                : username.isEmpty
+                    ? 'Username/Email is required'
+                    : 'Password is required',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final credential = Credential(
+      id: Credential.generateId(),
+      title: title,
+      username: username,
+      password: password,
+      category: _selectedCategory,
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
+
+    try {
+      await _credentialStorage.addCredential(credential);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save: $e', style: const TextStyle(color: Colors.white)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }

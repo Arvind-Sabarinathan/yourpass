@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/credential.dart';
+import '../../services/storage/credential_storage_service.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/secondary_button.dart';
@@ -18,6 +19,7 @@ class CredentialDetailsScreen extends StatefulWidget {
 }
 
 class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
+  final _credentialStorage = CredentialStorageService();
   late TextEditingController _titleController;
   late TextEditingController _usernameController;
   late TextEditingController _passwordController;
@@ -30,6 +32,8 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
   bool _isEditingNotes = false;
   bool _isEditingCategory = false;
   bool _obscurePassword = true;
+  bool _isSaving = false;
+  bool _isDeleting = false;
 
   final Map<String, bool> _copyStatus = {};
 
@@ -103,7 +107,8 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
                     child: SecondaryButton(
                       text: "Delete",
                       icon: Icons.delete_outline_rounded,
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _isDeleting ? null : _handleDelete,
+                      isLoading: _isDeleting,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -111,7 +116,8 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
                     child: PrimaryButton(
                       text: "Save",
                       icon: Icons.check_circle_rounded,
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _isSaving ? null : _handleSave,
+                      isLoading: _isSaving,
                     ),
                   ),
                 ],
@@ -142,85 +148,73 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
               ),
             ),
             Expanded(
-              child: ShaderMask(
-                shaderCallback: (Rect rect) {
-                  return const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black],
-                    stops: [0.0, 0.05],
-                  ).createShader(rect);
-                },
-                blendMode: BlendMode.dstIn,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionLabel("CATEGORY", theme),
-                      const SizedBox(height: 12),
-                      _buildCategoryRow(theme),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionLabel("CATEGORY", theme),
+                    const SizedBox(height: 12),
+                    _buildCategoryRow(theme),
 
-                      const SizedBox(height: 24),
-                      _buildSectionLabel("SERVICE DETAILS", theme),
-                      const SizedBox(height: 16),
-                      _buildInteractiveField(
-                        controller: _titleController,
-                        label: "Service Name",
-                        hint: "e.g. Google",
-                        isEditing: _isEditingTitle,
-                        onToggleEdit: () =>
-                            setState(() => _isEditingTitle = !_isEditingTitle),
-                        theme: theme,
+                    const SizedBox(height: 24),
+                    _buildSectionLabel("SERVICE DETAILS", theme),
+                    const SizedBox(height: 16),
+                    _buildInteractiveField(
+                      controller: _titleController,
+                      label: "Service Name",
+                      hint: "e.g. Google",
+                      isEditing: _isEditingTitle,
+                      onToggleEdit: () =>
+                          setState(() => _isEditingTitle = !_isEditingTitle),
+                      theme: theme,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInteractiveField(
+                      controller: _usernameController,
+                      label: "Username / Email",
+                      hint: "yourname@email.com",
+                      isEditing: _isEditingUsername,
+                      onToggleEdit: () => setState(
+                        () => _isEditingUsername = !_isEditingUsername,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInteractiveField(
-                        controller: _usernameController,
-                        label: "Username / Email",
-                        hint: "yourname@email.com",
-                        isEditing: _isEditingUsername,
-                        onToggleEdit: () => setState(
-                          () => _isEditingUsername = !_isEditingUsername,
-                        ),
-                        onCopy: () =>
-                            _copyToClipboard(_usernameController.text, 'user'),
-                        isCopied: _copyStatus['user'] == true,
-                        theme: theme,
+                      onCopy: () =>
+                          _copyToClipboard(_usernameController.text, 'user'),
+                      isCopied: _copyStatus['user'] == true,
+                      theme: theme,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInteractiveField(
+                      controller: _passwordController,
+                      label: "Password",
+                      hint: "••••••••",
+                      isEditing: _isEditingPassword,
+                      isObscure: _obscurePassword,
+                      onToggleEdit: () => setState(
+                        () => _isEditingPassword = !_isEditingPassword,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInteractiveField(
-                        controller: _passwordController,
-                        label: "Password",
-                        hint: "••••••••",
-                        isEditing: _isEditingPassword,
-                        isObscure: _obscurePassword,
-                        onToggleEdit: () => setState(
-                          () => _isEditingPassword = !_isEditingPassword,
-                        ),
-                        onCopy: () =>
-                            _copyToClipboard(_passwordController.text, 'pass'),
-                        isCopied: _copyStatus['pass'] == true,
-                        onToggleObscure: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
-                        theme: theme,
-                      ),
+                      onCopy: () =>
+                          _copyToClipboard(_passwordController.text, 'pass'),
+                      isCopied: _copyStatus['pass'] == true,
+                      onToggleObscure: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                      theme: theme,
+                    ),
 
-                      const SizedBox(height: 24),
-                      _buildSectionLabel("OPTIONAL", theme),
-                      const SizedBox(height: 12),
-                      _buildInteractiveField(
-                        controller: _notesController,
-                        label: "Notes",
-                        hint: "No notes added",
-                        isEditing: _isEditingNotes,
-                        onToggleEdit: () =>
-                            setState(() => _isEditingNotes = !_isEditingNotes),
-                        theme: theme,
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
+                    const SizedBox(height: 24),
+                    _buildSectionLabel("OPTIONAL", theme),
+                    const SizedBox(height: 12),
+                    _buildInteractiveField(
+                      controller: _notesController,
+                      label: "Notes",
+                      hint: "No notes added",
+                      isEditing: _isEditingNotes,
+                      onToggleEdit: () =>
+                          setState(() => _isEditingNotes = !_isEditingNotes),
+                      theme: theme,
+                    ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
             ),
@@ -228,6 +222,78 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleSave() async {
+    setState(() => _isSaving = true);
+
+    final updated = widget.credential.copyWith(
+      title: _titleController.text.trim(),
+      username: _usernameController.text.trim(),
+      password: _passwordController.text.trim(),
+      category: _selectedCategory,
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      updatedAt: DateTime.now(),
+    );
+
+    try {
+      await _credentialStorage.updateCredential(updated);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Credential'),
+        content: Text(
+          'Are you sure you want to delete "${widget.credential.title}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      await _credentialStorage.deleteCredential(widget.credential.id);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      if (mounted) setState(() => _isDeleting = false);
+    }
   }
 
   void _copyToClipboard(String text, String key) {
@@ -279,6 +345,15 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          "Service Category",
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 10),
         _isEditingCategory
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -336,7 +411,7 @@ class _CredentialDetailsScreenState extends State<CredentialDetailsScreen> {
               icon: _isEditingCategory
                   ? Icons.check_rounded
                   : Icons.edit_rounded,
-              label: _isEditingCategory ? "Save" : "Edit",
+              label: _isEditingCategory ? "Done" : "Edit",
               onPressed: () =>
                   setState(() => _isEditingCategory = !_isEditingCategory),
               isPrimary: _isEditingCategory,

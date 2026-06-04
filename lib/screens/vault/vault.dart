@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:yourpass/models/credential.dart';
+import 'package:yourpass/services/storage/credential_storage_service.dart';
 import 'package:yourpass/widgets/app_logo.dart';
 import '../add_credential/add_credential.dart';
 import '../credential_details/credential_details.dart';
-import '../../widgets/primary_button.dart';
 import '../../widgets/action_button.dart';
 
 class Vault extends StatefulWidget {
@@ -17,86 +17,35 @@ class Vault extends StatefulWidget {
 
 class _VaultState extends State<Vault> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
+  final _credentialStorage = CredentialStorageService();
+  List<Credential> _allCredentials = [];
   late List<Credential> _filteredCredentials;
   CredentialCategory? _selectedCategory;
   final Map<String, bool> _copyStatus = {};
-
-  final List<Credential> _allCredentials = [
-    Credential(
-      id: '1',
-      title: 'Google',
-      username: 'john.doe@gmail.com',
-      password: 'password123',
-      category: CredentialCategory.web,
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    Credential(
-      id: '2',
-      title: 'Instagram',
-      username: 'john_insta',
-      password: 'insta_pass_456',
-      category: CredentialCategory.app,
-      createdAt: DateTime.now().subtract(const Duration(days: 15)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    Credential(
-      id: '3',
-      title: 'Github',
-      username: 'johndoe_dev',
-      password: 'git_secure_789',
-      category: CredentialCategory.web,
-      createdAt: DateTime.now().subtract(const Duration(days: 20)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    Credential(
-      id: '4',
-      title: 'Netflix',
-      username: 'family_netflix',
-      password: 'movie_time_321',
-      category: CredentialCategory.web,
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    Credential(
-      id: '5',
-      title: 'Spotify',
-      username: 'music_lover_99',
-      password: 'beat_pass_654',
-      category: CredentialCategory.app,
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 10)),
-    ),
-    Credential(
-      id: '6',
-      title: 'Amazon',
-      username: 'shopper_john',
-      password: 'buy_all_the_things',
-      category: CredentialCategory.web,
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    Credential(
-      id: '7',
-      title: 'Router Admin',
-      username: 'admin',
-      password: 'very_secret_router',
-      category: CredentialCategory.other,
-      createdAt: DateTime.now().subtract(const Duration(days: 100)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 50)),
-    ),
-  ];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _filteredCredentials = List.from(_allCredentials);
+    _filteredCredentials = [];
+    _loadCredentials();
+  }
+
+  Future<void> _loadCredentials() async {
+    final creds = await _credentialStorage.loadCredentials();
+    if (!mounted) return;
+    setState(() {
+      _allCredentials = creds;
+      _isLoading = false;
+    });
     _filterCredentials();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -110,69 +59,37 @@ class _VaultState extends State<Vault> {
       body: SafeArea(
         child: Stack(
           children: [
-            // List of Credentials
-            _filteredCredentials.isEmpty
-                ? _buildEmptyState(theme)
-                : ShaderMask(
-                    shaderCallback: (Rect rect) {
-                      return LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: const [
-                          Colors.transparent,
-                          Colors.black,
-                          Colors.black,
-                          Colors.transparent,
-                        ],
-                        stops: [
-                          170 / rect.height,
-                          240 / rect.height,
-                          (rect.height - 124 - bottomInset) / rect.height,
-                          (rect.height - 64 - bottomInset) / rect.height,
-                        ],
-                      ).createShader(rect);
-                    },
-                    blendMode: BlendMode.dstIn,
-                    child: ListView.builder(
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        210,
-                        20,
-                        104 + bottomInset,
-                      ),
-                      itemCount: _filteredCredentials.length,
-                      itemBuilder: (context, index) {
-                        return _buildCredentialCard(
-                          _filteredCredentials[index],
-                          theme,
-                        );
-                      },
-                    ),
-                  ),
-
-            // Header
-            Positioned(top: 0, left: 0, right: 0, child: _buildHeader(context)),
-
-            // Top Pill (Categories)
-            Positioned(top: 70, left: 0, right: 0, child: _buildTopPill(theme)),
-
-            // Add Button
-            Positioned(
-              top: 130,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildAddButton(theme),
-              ),
+            Column(
+              children: [
+                _buildHeader(context),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _filteredCredentials.isEmpty
+                      ? _buildEmptyState(theme)
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(
+                            left: 20,
+                            right: 20,
+                            bottom: 140,
+                          ),
+                          itemCount: _filteredCredentials.length,
+                          itemBuilder: (context, index) {
+                            return _buildCredentialCard(
+                              _filteredCredentials[index],
+                              theme,
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
-
-            // Search Pill (Bottom)
             Positioned(
-              bottom: 20 + bottomInset,
               left: 0,
               right: 0,
-              child: _buildSearchPill(theme),
+              bottom: bottomInset,
+              child: _buildBottomDock(theme),
             ),
           ],
         ),
@@ -248,20 +165,17 @@ class _VaultState extends State<Vault> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: isDark
-            ? theme.colorScheme.surface.withValues(alpha: 0.5)
+            ? theme.colorScheme.surface.withValues(alpha: 0.15)
             : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: theme.colorScheme.primary.withValues(
-            alpha: isDark ? 0.1 : 0.05,
-          ),
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
           width: 1.0,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Title, Username (Subtle), and Badge
           Row(
             children: [
               Text(
@@ -291,10 +205,8 @@ class _VaultState extends State<Vault> {
             ],
           ),
           const SizedBox(height: 16),
-          // Row 2: Copy Actions and Details
           Row(
             children: [
-              // Copy Username Section
               Expanded(
                 child: ActionButton(
                   icon: _copyStatus['${cred.id}_u'] == true
@@ -320,7 +232,6 @@ class _VaultState extends State<Vault> {
                 ),
               ),
               const SizedBox(width: 12),
-              // Copy Password Section
               Expanded(
                 child: ActionButton(
                   icon: _copyStatus['${cred.id}_p'] == true
@@ -346,17 +257,20 @@ class _VaultState extends State<Vault> {
                 ),
               ),
               const SizedBox(width: 12),
-              // Arrow Button
               ActionButton(
                 icon: Icons.arrow_forward_ios_rounded,
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  _searchFocusNode.unfocus();
+                  final result = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
                           CredentialDetailsScreen(credential: cred),
                     ),
                   );
+                  if (result == true && mounted) {
+                    _loadCredentials();
+                  }
                 },
                 isPrimary: true,
               ),
@@ -416,7 +330,7 @@ class _VaultState extends State<Vault> {
                   ? Colors.white
                   : theme.colorScheme.primary.withValues(alpha: 0.6),
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              fontSize: 13,
+              fontSize: 14,
             ),
           ),
         ),
@@ -424,55 +338,95 @@ class _VaultState extends State<Vault> {
     );
   }
 
-  Widget _buildTopPill(ThemeData theme) {
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color pillColor = isDark ? theme.colorScheme.surface : Colors.white;
-    final Color borderColor = theme.colorScheme.primary.withValues(
-      alpha: isDark ? 0.2 : 0.1,
+  Widget _buildFilterRow(ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(child: _buildFilterChip(null, "All")),
+        const SizedBox(width: 4),
+        Expanded(child: _buildFilterChip(CredentialCategory.web, "Web")),
+        const SizedBox(width: 4),
+        Expanded(child: _buildFilterChip(CredentialCategory.app, "Apps")),
+        const SizedBox(width: 4),
+        Expanded(child: _buildFilterChip(CredentialCategory.other, "Others")),
+      ],
     );
+  }
 
+  Widget _buildBottomDock(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = (isDark ? theme.colorScheme.surface : Colors.white);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: pillColor,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: borderColor, width: 1.0),
+        color: bgColor,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(42),
+          topRight: Radius.circular(42),
+        ),
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+        ),
       ),
-      child: Row(
-        children: [
-          Expanded(child: _buildFilterChip(null, "All")),
-          const SizedBox(width: 4),
-          Expanded(child: _buildFilterChip(CredentialCategory.web, "Web")),
-          const SizedBox(width: 4),
-          Expanded(child: _buildFilterChip(CredentialCategory.app, "Apps")),
-          const SizedBox(width: 4),
-          Expanded(child: _buildFilterChip(CredentialCategory.other, "Others")),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildFilterRow(theme),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _buildSearchField(theme)),
+                const SizedBox(width: 8),
+                _buildAddIcon(theme),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAddButton(ThemeData theme) {
-    return PrimaryButton(
-      text: "Add New Credential",
-      icon: Icons.add_rounded,
-      onPressed: () {
-        Navigator.push(
+  Widget _buildAddIcon(ThemeData theme) {
+    return GestureDetector(
+      onTap: () async {
+        _searchFocusNode.unfocus();
+        final result = await Navigator.push<bool>(
           context,
           MaterialPageRoute(builder: (context) => const AddCredentialScreen()),
         );
+        if (result == true && mounted) {
+          _loadCredentials();
+        }
       },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary,
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+      ),
     );
   }
 
   Widget _buildSearchField(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       height: 44,
-      decoration: const BoxDecoration(
-        color: Colors.transparent, // Seamless with pill
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(40),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(
+            alpha: isDark ? 0.2 : 0.1,
+          ),
+        ),
       ),
       child: TextField(
+        focusNode: _searchFocusNode,
         controller: _searchController,
         onChanged: (value) => _filterCredentials(),
         style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
@@ -492,25 +446,6 @@ class _VaultState extends State<Vault> {
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),
       ),
-    );
-  }
-
-  Widget _buildSearchPill(ThemeData theme) {
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color pillColor = isDark ? theme.colorScheme.surface : Colors.white;
-    final Color borderColor = theme.colorScheme.primary.withValues(
-      alpha: isDark ? 0.2 : 0.1,
-    );
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(
-        color: pillColor,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: borderColor, width: 1.0),
-      ),
-      child: _buildSearchField(theme),
     );
   }
 

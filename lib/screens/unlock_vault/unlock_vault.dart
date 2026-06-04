@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:yourpass/configs/app_text_styles.dart';
 import 'package:yourpass/screens/vault/vault.dart';
@@ -111,13 +109,8 @@ class _UnlockState extends State<UnlockVault> {
       barrierLabel: 'Password hint',
       barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
-      transitionBuilder: (ctx, anim, secondaryAnim, child) => BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: 1.5 * anim.value,
-          sigmaY: 1.5 * anim.value,
-        ),
-        child: FadeTransition(opacity: anim, child: child),
-      ),
+      transitionBuilder: (ctx, anim, secondaryAnim, child) =>
+          FadeTransition(opacity: anim, child: child),
       pageBuilder: (ctx, anim1, anim2) {
         final isDark = theme.brightness == Brightness.dark;
 

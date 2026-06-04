@@ -49,7 +49,7 @@ class _MasterPasswordSetupState extends State<MasterPasswordSetup> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error, style: const TextStyle(color: Colors.white)),
-          backgroundColor: theme.colorScheme.primary,
+          backgroundColor: theme.colorScheme.error,
         ),
       );
       return;
