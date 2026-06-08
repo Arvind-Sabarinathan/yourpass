@@ -14,17 +14,18 @@
 
 ---
 
-YourPass is a **privacy first** and **offline password manager** built for privacy. All your credentials are encrypted with AES-256-GCM using a key derived from your master password via Argon2id, and stored locally on your device — no cloud sync, no telemetry, no internet required.
+YourPass is a **privacy first** and **offline password manager** built for privacy. All your credentials are encrypted with AES-256-GCM using a key derived from your master password via Argon2id, and stored locally in an encrypted SQLite database on your device — no cloud sync, no telemetry, no internet required.
 
 ---
 
 ## Features
 
-- **Argon2id key derivation** — Your vault key is derived from your master password using Argon2id, making brute-force attacks infeasible.
-- **AES-256-GCM encryption** — All credentials are encrypted with AES-256-GCM before touching disk.
+- **Argon2id key derivation** — Your vault key is derived from your master password using Argon2id (3 iterations, 64 MB memory, 4 parallelism), making brute-force attacks infeasible.
+- **AES-256-GCM encryption** — Each credential's username, password, and notes are encrypted at the row level before being written to the database.
+- **Encrypted SQLite storage** — Credentials are stored in a local SQLite database. Title and category stay in plaintext for efficient search; sensitive fields are individually encrypted.
 - **Vault creation & unlock flow** — Set up a master password with an optional hint, then unlock with each session.
 - **Fully offline** — Your credentials never leave your device. No accounts, no servers, no subscription.
-- **Search & categorize** — Filter by category (Web, App, Other) or search by title and username.
+- **Search & categorize** — Filter by category (Web, App, Other) or search by title.
 - **One-tap copy** — Tap to copy usernames and passwords. A quick confirmation lets you know it worked.
 - **Light & dark mode** — Seamlessly follows your system theme out of the box.
 - **Add, view, edit, delete** — Full CRUD for all your credentials.

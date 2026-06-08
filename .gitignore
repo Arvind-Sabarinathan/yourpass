@@ -46,3 +46,6 @@ app.*.map.json
 
 # agents
 opencode.json
+
+# others
+notes.txt
