@@ -100,11 +100,8 @@ class _VaultState extends State<Vault> {
   void _filterCredentials() {
     setState(() {
       _filteredCredentials = _allCredentials.where((cred) {
-        final matchesSearch =
+          final matchesSearch =
             cred.title.toLowerCase().contains(
-              _searchController.text.toLowerCase(),
-            ) ||
-            cred.username.toLowerCase().contains(
               _searchController.text.toLowerCase(),
             );
         final matchesCategory =
