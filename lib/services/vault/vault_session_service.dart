@@ -10,7 +10,7 @@ class VaultSessionService {
   bool get isUnlocked => _session != null;
 
   void createSession({required List<int> vaultKey}) {
-    _session = VaultSession(vaultKey: vaultKey, unlockedAt: DateTime.now());
+    _session = VaultSession(vaultKey: List.of(vaultKey), unlockedAt: DateTime.now());
   }
 
   List<int> get vaultKey {

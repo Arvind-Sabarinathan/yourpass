@@ -6,6 +6,7 @@ import 'package:yourpass/services/storage/credential_storage_service.dart';
 import 'package:yourpass/widgets/app_logo.dart';
 import '../add_credential/add_credential.dart';
 import '../credential_details/credential_details.dart';
+import '../settings/settings.dart';
 import '../../widgets/action_button.dart';
 
 class Vault extends StatefulWidget {
@@ -100,10 +101,9 @@ class _VaultState extends State<Vault> {
   void _filterCredentials() {
     setState(() {
       _filteredCredentials = _allCredentials.where((cred) {
-          final matchesSearch =
-            cred.title.toLowerCase().contains(
-              _searchController.text.toLowerCase(),
-            );
+        final matchesSearch = cred.title.toLowerCase().contains(
+          _searchController.text.toLowerCase(),
+        );
         final matchesCategory =
             _selectedCategory == null || cred.category == _selectedCategory;
         return matchesSearch && matchesCategory;
@@ -369,7 +369,13 @@ class _VaultState extends State<Vault> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildFilterRow(theme),
+            Row(
+              children: [
+                Expanded(child: _buildFilterRow(theme)),
+                const SizedBox(width: 8),
+                _buildSettingsIcon(theme),
+              ],
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -404,6 +410,34 @@ class _VaultState extends State<Vault> {
           borderRadius: BorderRadius.circular(40),
         ),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+      ),
+    );
+  }
+
+  Widget _buildSettingsIcon(ThemeData theme) {
+    return GestureDetector(
+      onTap: () async {
+        _searchFocusNode.unfocus();
+        await Navigator.push<String>(
+          context,
+          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+        );
+        if (mounted) {
+          _loadCredentials();
+        }
+      },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: Icon(
+          Icons.settings_rounded,
+          size: 22,
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }

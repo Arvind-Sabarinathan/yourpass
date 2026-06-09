@@ -2,8 +2,8 @@ import 'package:cryptography/cryptography.dart';
 
 class KeyDerivationService {
   final Argon2id _argon2id = Argon2id(
-    iterations: 3,
-    memory: 65536,
+    iterations: 2,
+    memory: 32768,
     parallelism: 4,
     hashLength: 32,
   );
