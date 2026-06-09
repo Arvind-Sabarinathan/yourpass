@@ -14,45 +14,46 @@
 
 ---
 
-YourPass is a **privacy first** and **offline password manager** built for privacy. All your credentials are encrypted with AES-256-GCM using a key derived from your master password via Argon2id, and stored locally in an encrypted SQLite database on your device — no cloud sync, no telemetry, no internet required.
+yourpass is a **privacy first** and **offline password manager** built for privacy. All your credentials are encrypted with AES-256-GCM using a key derived from your master password via Argon2id, and stored locally in an encrypted SQLite database on your device — no cloud sync, no telemetry, no internet required.
 
 ---
 
 ## Features
 
-- **Argon2id key derivation** — Your vault key is derived from your master password using Argon2id (3 iterations, 64 MB memory, 4 parallelism), making brute-force attacks infeasible.
+- **Argon2id key derivation** — Your vault key is derived from your master password using Argon2id (2 iterations, 32 MB memory, 4 parallelism), making brute-force attacks infeasible.
 - **AES-256-GCM encryption** — Each credential's username, password, and notes are encrypted at the row level before being written to the database.
 - **Encrypted SQLite storage** — Credentials are stored in a local SQLite database. Title and category stay in plaintext for efficient search; sensitive fields are individually encrypted.
 - **Vault creation & unlock flow** — Set up a master password with an optional hint, then unlock with each session.
+- **Settings screen** — Lock your vault, switch themes, and manage your data from a dedicated settings panel.
+- **Persistent theme picker** — Choose between Light, Dark, or System theme. Your preference is saved and restored across sessions.
 - **Fully offline** — Your credentials never leave your device. No accounts, no servers, no subscription.
 - **Search & categorize** — Filter by category (Web, App, Other) or search by title.
 - **One-tap copy** — Tap to copy usernames and passwords. A quick confirmation lets you know it worked.
-- **Light & dark mode** — Seamlessly follows your system theme out of the box.
 - **Add, view, edit, delete** — Full CRUD for all your credentials.
 
 ---
 
 ## Screenshots
 
-### Dark mode
+### Dark theme
 
-<p align="center">
-  <img alt="Screenshot 1" src="screenshots/1_dark.jpg" width="200">
-  <img alt="Screenshot 2" src="screenshots/2_dark.jpg" width="200">
-  <img alt="Screenshot 3" src="screenshots/3_dark.jpg" width="200">
-  <img alt="Screenshot 4" src="screenshots/4_dark.jpg" width="200">
-  <img alt="Screenshot 5" src="screenshots/5_dark.jpg" width="200">
-</p>
+| Master password setup                            | Vault unlock                            | Vault                            |
+| ------------------------------------------------ | --------------------------------------- | -------------------------------- |
+| ![Master password setup](screenshots/1_dark.jpg) | ![Vault unlock](screenshots/2_dark.jpg) | ![Vault](screenshots/3_dark.jpg) |
 
-### Light mode
+| Add new credential                            | View / Update existing credential                            | Settings                            |
+| --------------------------------------------- | ------------------------------------------------------------ | ----------------------------------- |
+| ![Add new credential](screenshots/4_dark.jpg) | ![View / Update existing credential](screenshots/5_dark.jpg) | ![Settings](screenshots/6_dark.jpg) |
 
-<p align="center">
-  <img alt="Screenshot 1" src="screenshots/1_light.jpg" width="200">
-  <img alt="Screenshot 2" src="screenshots/2_light.jpg" width="200">
-  <img alt="Screenshot 3" src="screenshots/3_light.jpg" width="200">
-  <img alt="Screenshot 4" src="screenshots/4_light.jpg" width="200">
-  <img alt="Screenshot 5" src="screenshots/5_light.jpg" width="200">
-</p>
+### Light theme
+
+| Master password setup                             | Vault unlock                             | Vault                             |
+| ------------------------------------------------- | ---------------------------------------- | --------------------------------- |
+| ![Master password setup](screenshots/1_light.jpg) | ![Vault unlock](screenshots/2_light.jpg) | ![Vault](screenshots/3_light.jpg) |
+
+| Add new credential                             | View / Update existing credential                             | Settings                             |
+| ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------ |
+| ![Add new credential](screenshots/4_light.jpg) | ![View / Update existing credential](screenshots/5_light.jpg) | ![Settings](screenshots/6_light.jpg) |
 
 ---
 
@@ -71,7 +72,7 @@ Requirements: Flutter SDK 3.11.5 or later.
 
 ## Privacy
 
-YourPass collects **no data**. There is no analytics SDK, no crash reporter, no network calls. It is designed to work completely offline — you can even use it on a device in airplane mode.
+yourpass collects **no data**. There is no analytics SDK, no crash reporter, no network calls. It is designed to work completely offline — you can even use it on a device in airplane mode.
 
 ---
 
