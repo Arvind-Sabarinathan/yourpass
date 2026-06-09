@@ -48,4 +48,9 @@ app.*.map.json
 opencode.json
 
 # others
-notes.txt
+notes.md
+
+# keystore
+android/key.properties
+*.jks
+*.keystore
